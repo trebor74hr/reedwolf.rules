@@ -1,12 +1,6 @@
 from typing import Any, Dict, List, Optional, Union, Callable, Tuple
 from functools import partial
 from dataclasses import dataclass, field, is_dataclass, Field as DcField
-try:
-    from pydantic.fields import ModelField as PydModelField
-    PydModelFieldType = PydModelField
-except ImportError:
-    PydModelField = None
-    PydModelFieldType = DcField # for typing
 
 # fields as dc_fields
 from enum import Enum

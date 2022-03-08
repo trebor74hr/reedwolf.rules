@@ -3,6 +3,7 @@ from typing import Callable, Any, List, _GenericAlias
 from functools import reduce
 from dataclasses import Field as DcField, is_dataclass
 try:
+    # imported and used in other modules - e.g. base.py
     from pydantic import BaseModel as PydBaseModel
     from pydantic.fields import ModelField as PydModelField
     PydModelFieldType = PydModelField
