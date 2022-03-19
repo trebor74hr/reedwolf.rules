@@ -322,6 +322,8 @@ class ValueExpression(RubberObjectBase):
         #     raise RuleSetupNameError(owner=self, msg=f"VariableExpression name {aname} starts with _ what is reserved, choose another name.")
         if aname in self.RESERVED_ATTR_NAMES: # , "%r -> %s" % (self._node, aname):
             raise RuleSetupNameError(owner=self, msg=f"ValueExpression's attribute '{aname}' is reserved name, choose another.")
+        if aname.startswith("__") and aname.endswith("__"):
+            raise AttributeError(f"Attribute '{type(self)}' object has no attribute '{aname}'")
         return ValueExpression(node=aname, namespace=self._namespace, Path=self.Path)
 
     def __call__(self, *args, **kwargs):

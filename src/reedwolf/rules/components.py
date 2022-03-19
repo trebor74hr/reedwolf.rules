@@ -57,6 +57,9 @@ class FieldTypeEnum(str, Enum):
     BOOL   = "bool"
     CHOICE = "choice" # html select
     ENUM   = "enum"
+    FILE   = "file"
+    PASSWORD  = "password"
+    DATE  = "date"
 
 
 # ------------------------------------------------------------
@@ -172,6 +175,9 @@ class Field(Component):
     variable:       Union[Variable, UndefinedType] = field(init=False, repr=False, default=UNDEFINED)
     bound_variable: Union[Variable, UndefinedType] = field(init=False, repr=False, default=UNDEFINED)
 
+    def __post_init__(self):
+        self.init_clean()
+
     def init_clean(self):
         # TODO: check that value is simple M. value
         if not isinstance(self.bind, ValueExpression):
@@ -180,21 +186,42 @@ class Field(Component):
         if not self.name:
             self.name = self.get_name_from_bind(self.bind)
 
-        if self.__class__!=BooleanField and self.type==FieldTypeEnum.BOOL:
-            raise RuleSetupValueError(owner=self, msg=f"For type='checkbox' use BooleanField instead.")
-        elif self.__class__!=ChoiceField and self.type==FieldTypeEnum.CHOICE:
-            raise RuleSetupValueError(owner=self, msg=f"For type='choice' use ChoiceField instead.")
-        elif self.__class__!=EnumField and self.type==FieldTypeEnum.ENUM:
-            raise RuleSetupValueError(owner=self, msg=f"For type='enum' use EnumField instead.")
-        elif self.__class__==Field and self.type is None:
-            self.type=FieldTypeEnum.INPUT
+        # TODO: this is a mess - remove self.type ?
+        if self.type is None:
+            if self.__class__==BooleanField:
+                self.type = FieldTypeEnum.BOOL
+            elif self.__class__==ChoiceField:
+                self.type = FieldTypeEnum.CHOICE
+            elif self.__class__==EnumField:
+                self.type = FieldTypeEnum.ENUM
+            else:
+                self.type=FieldTypeEnum.INPUT
+        else:
+            # type should be ommited?
+            if self.__class__==BooleanField:
+                raise RuleSetupValueError(owner=self, msg=f"For BooleanField type should be ommited.")
+            elif self.__class__==ChoiceField:
+                raise RuleSetupValueError(owner=self, msg=f"For ChoiceField type should be ommited.")
+            elif self.__class__==EnumField:
+                raise RuleSetupValueError(owner=self, msg=f"For EnumField type should be ommited.")
+
+            # use classes?
+            elif self.__class__!=BooleanField and self.type==FieldTypeEnum.BOOL:
+                raise RuleSetupValueError(owner=self, msg=f"For type='checkbox' use BooleanField instead.")
+            elif self.__class__!=ChoiceField and self.type==FieldTypeEnum.CHOICE:
+                raise RuleSetupValueError(owner=self, msg=f"For type='choice' use ChoiceField instead.")
+            elif self.__class__!=EnumField and self.type==FieldTypeEnum.ENUM:
+                raise RuleSetupValueError(owner=self, msg=f"For type='enum' use EnumField instead.")
+
+            # normalize to Enum value
+            type_values = {ev.value:ev for ev in FieldTypeEnum}
+            if self.type not in type_values:
+                raise RuleSetupValueError(owner=self, msg=f"type='{self.type}' needs to be one of {type_values.keys()}.")
+            self.type = type_values[self.type]
 
         # NOTE: for dataclass found no way to call in standard "inheritance
         #       way", super().clean_base()
         self.init_clean_base()
-
-    def __post_init__(self):
-        self.init_clean()
 
     def setup(self, heap:VariableHeap):
         super().setup(heap=heap)
@@ -255,9 +282,6 @@ class BooleanField(Field):
 
     def __post_init__(self):
         self.init_clean()
-        if self.type:
-            raise RuleSetupValueError(owner=self, msg=f"{self.type}: 'type' should be ommitted (set to 'checkbox' automatically).")
-        self.type = FieldTypeEnum.BOOL
         if self.default is not None and not isinstance(self.default, (bool, ValueExpression)):
             raise RuleSetupValueError(owner=self, msg=f"'default'={self.default} needs to be bool value  (True/False).")
 
@@ -283,9 +307,6 @@ class ChoiceField(Field):
 
     def __post_init__(self):
         self.init_clean()
-        if self.type:
-            raise RuleSetupValueError(owner=self, msg=f"{self.type}: 'type' should be ommitted (set to 'choice' automatically).")
-        self.type = FieldTypeEnum.CHOICE
         if self.choices is None:
             raise RuleSetupValueError(owner=self, msg=f"{self.name}: {self.__class__.__name__}: argument 'choices' is required.")
         if is_enum(self.choices):
@@ -363,11 +384,8 @@ class ChoiceField(Field):
 class EnumField(Field):
     enum: Optional[Enum] = None
 
-    def __post_init__(self):
-        self.init_clean()
-        if self.type:
-            raise RuleSetupValueError(owner=self, msg=f"Attribute 'type'={self.type} should be ommitted (set to 'enum' automatically).")
-        self.type = FieldTypeEnum.ENUM
+    # def __post_init__(self):
+    #     self.init_clean()
 
     def setup(self, heap:VariableHeap):
         super().setup(heap=heap)
