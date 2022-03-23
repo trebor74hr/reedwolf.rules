@@ -74,6 +74,24 @@ from .components import (
 @dataclass
 class ContainerBase(ComponentBase):
 
+    # def is_finished(self):
+    #     return hasattr(self, "_finished")
+
+    # def finish(self):
+    #     print(self.name)
+    #     import pdb;pdb.set_trace() 
+    #     if self.is_finished():
+    #         raise RuleSetupError(owner=self, msg="finish() should be called only once.")
+    #     self._finished = True
+
+    def add_section(self, section:Section):
+        if self.is_finished():
+            raise RuleSetupError(owner=self, msg="Section can not be added after setup() is called.")
+        found = [sec for sec in self.contains if sec.name==section.name]
+        if found:
+            raise RuleSetupError(owner=self, msg=f"Section {section.name} is already added.")
+        self.contains.append(section)
+
     def is_extension(self):
         # TODO: if self.owner is not None could be used as the term, put validation somewhere
         " if start model is value expression - that mean that the the Rules is Extension "
@@ -81,8 +99,11 @@ class ContainerBase(ComponentBase):
 
     def setup(self):
         # components are flat list, no recursion/hierarchy browsing needed
+        if self.is_finished():
+            raise RuleSetupError(owner=self, msg="setup() should be called only once")
+
         if self.heap is not None:
-            raise RuleInternalError(owner=self, msg="Heap.setup() should be called only once")
+            raise RuleSetupError(owner=self, msg="Heap.setup() should be called only once")
 
         self.heap = VariablesHeap(owner=self)
 

@@ -502,9 +502,6 @@ class ComponentBase(SetOwnerMixin):
 
         return components
 
-    def is_finished(self):
-        return hasattr(self, "_finished")
-
     # ------------------------------------------------------------
 
     def _invoke_component_setup(self, subcomponent_name:str, subcomponent:ComponentBase, heap:'VariableHeap'): 
@@ -610,7 +607,19 @@ class ComponentBase(SetOwnerMixin):
         for subcomponent_name, subcomponent_path, subcomponent, th_field in self._get_subcomponents_list():
             self._invoke_component_setup(subcomponent_name, subcomponent=subcomponent, heap=heap)
 
+        self.finish()
+
+    # ------------------------------------------------------------
+
+    def finish(self):
+        if self.is_finished():
+            raise RuleSetupError(owner=self, msg="finish() should be called only once.")
         self._finished = True
+
+    # ------------------------------------------------------------
+
+    def is_finished(self):
+        return hasattr(self, "_finished")
 
 
     # ------------------------------------------------------------
